@@ -1,30 +1,89 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">CommunityEventManagementSystem.App</a>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="p-3 d-flex flex-column vh-100 position-sticky top-0">
+
+    <div class="mb-3 text-center">
+        <img src="EMSLOGO.png" alt="CEMS Logo" class="img-fluid" style="max-height: 60px;" />
     </div>
+
+    <!-- MAIN MENU -->
+    <ul class="nav nav-pills flex-column gap-1">
+
+        <li class="nav-item">
+            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                Home
+            </NavLink>
+        </li>
+
+        <li class="nav-item">
+            <NavLink class="nav-link" href="/events">
+                All Events
+            </NavLink>
+        </li>
+
+        <AuthorizeView>
+            <Authorized>
+                <hr />
+
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/admin">
+                        Dashboard
+                    </NavLink>
+                </li>
+
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/admin/events">
+                        Events
+                    </NavLink>
+                </li>
+
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/admin/participants">
+                        Participants
+                    </NavLink>
+                </li>
+
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/admin/venues">
+                        Venues
+                    </NavLink>
+                </li>
+
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/admin/activities">
+                        Activities
+                    </NavLink>
+                </li>
+
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/admin/approvals">
+                        Approvals
+                    </NavLink>
+                </li>
+            </Authorized>
+        </AuthorizeView>
+    </ul>
+
+    <!-- BOTTOM SECTION -->
+    <div class="mt-auto">
+        <AuthorizeView>
+            <Authorized>
+                <!-- Logout button uses btn-success to match blue/orange theme -->
+                <form method="post" action="/admin/logout-post">
+                    <button type="submit" class="btn btn-success w-100 btn-sm">
+                        Logout
+                    </button>
+                </form>
+            </Authorized>
+
+            <NotAuthorized>
+                <!-- Admin button also uses btn-success for blue/orange theme -->
+                <NavLink href="/admin/login"
+                         class="btn btn-success w-100 btn-sm text-center">
+                    ADMIN
+                </NavLink>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+
 </div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
-
