@@ -1,0 +1,27 @@
+{
+  "name": "Blazor DevContainer (.NET 9)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "username": "vscode",
+      "installZsh": false
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-vscode-remote.remote-containers"
+      ],
+      "settings": {
+        "dotnetAcquisitionExtension.enableTelemetry": false
+      }
+    }
+  },
+  "forwardPorts": [5000, 5001],
+  "postCreateCommand": "bash .devcontainer/bootstrap.sh",
+  "remoteUser": "vscode"
+}

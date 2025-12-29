@@ -1,0 +1,11 @@
+* text=auto
+
+# Ensure shell scripts use LF on all platforms
+*.sh text eol=lf
+
+# Common text files
+*.cs text
+*.csproj text
+*.sln text
+*.json text
+*.md text
