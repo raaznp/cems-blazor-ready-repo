@@ -7,6 +7,7 @@ This repository includes a ready-to-use Dev Container for Blazor development. It
 - Docker (Desktop on Windows/macOS, or Docker Engine on Linux)
 - Visual Studio Code
 - "Dev Containers" extension (ms-vscode-remote.remote-containers)
+ - For local development (no Docker), install the .NET 10 LTS SDK: https://dotnet.microsoft.com/en-us/download/dotnet/10.0
 
 ### Open in Dev Container
 1. Open this folder in VS Code.
