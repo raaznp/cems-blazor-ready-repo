@@ -1,5 +1,5 @@
-# Blazor / .NET 9 Dev Container
-FROM mcr.microsoft.com/devcontainers/dotnet:1-9-bookworm
+# Blazor / .NET 10 LTS Dev Container
+FROM mcr.microsoft.com/devcontainers/dotnet:1-10-bookworm
 
 # Install SQLite and certificates
 USER root

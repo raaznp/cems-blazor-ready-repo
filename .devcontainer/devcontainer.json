@@ -1,5 +1,5 @@
 {
-  "name": "Blazor DevContainer (.NET 9)",
+  "name": "Blazor DevContainer (.NET 10 LTS)",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."

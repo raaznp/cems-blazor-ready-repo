@@ -1,7 +1,7 @@
 # communityeventmanagementsystem
 Community Event Management System in Blazor framework as the project of  CET254 - Advanced Programming - ISMT College, affiliated via Sunderland University, UK.
-## Dev Containers (Blazor / .NET 9)
-This repository includes a ready-to-use Dev Container for Blazor development. It installs the .NET 9 SDK, SQLite, and the EF Core CLI, and can auto-bootstrap a new Blazor Server app on first open.
+## Dev Containers (Blazor / .NET 10 LTS)
+This repository includes a ready-to-use Dev Container for Blazor development. It installs the .NET 10 LTS SDK, SQLite, and the EF Core CLI, and can auto-bootstrap a new Blazor Server app on first open.
 
 ### Prerequisites
 - Docker (Desktop on Windows/macOS, or Docker Engine on Linux)
@@ -14,7 +14,7 @@ This repository includes a ready-to-use Dev Container for Blazor development. It
 3. On first start, the container runs a bootstrap script that creates a solution and a Blazor Server app if missing.
 
 What the container does:
-- Builds from `.devcontainer/Dockerfile` (based on .NET 9 devcontainer image)
+- Builds from `.devcontainer/Dockerfile` (based on .NET 10 LTS devcontainer image)
 - Installs SQLite and EF Core CLI
 - Runs `.devcontainer/bootstrap.sh` to scaffold:
 	- `CommunityEventManagementSystem.sln`
