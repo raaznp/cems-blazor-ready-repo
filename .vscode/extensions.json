@@ -1,6 +1,5 @@
 {
   "recommendations": [
-    "ms-dotnettools.csharp",
-    "ms-vscode.remote-containers"
+    "ms-dotnettools.csharp"
   ]
 }

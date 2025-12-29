@@ -7,8 +7,7 @@ obj/
 *.user
 *.suo
 
-# Dev Containers
-.devcontainer/local.env
+# (Removed Dev Containers entries)
 
 # Logs
 *.log
