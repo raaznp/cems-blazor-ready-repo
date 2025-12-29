@@ -1,0 +1,75 @@
+﻿@page "/admin"
+@attribute [Authorize(Policy = "AdminOnly")]
+@inject RegistrationService RegistrationService
+
+<h1 class="mb-3">Admin Dashboard</h1>
+
+<p class="lead">Select to manage:</p>
+
+<!-- ADMIN OPTIONS -->
+<div class="d-flex flex-column gap-3">
+
+    <div class="card">
+        <div class="card-body">
+            <h5>Create new event here. You must create Activity and Venue first.</h5>
+            <a class="btn" href="/admin/events">
+                Manage Events
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5>Create new participants here.</h5>
+            <a class="btn" href="/admin/participants">
+                Manage Participants
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5>Create new venues here.</h5>
+            <a class="btn" href="/admin/venues">
+                Manage Venues
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5>Create activities here.</h5>
+            <a class="btn" href="/admin/activities">
+                Manage Activities
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5>View approvals</h5>
+            <a class="btn" href="/admin/approvals">
+                Approve / Decline
+            </a>
+        </div>
+    </div>
+
+    @if (_pendingCount >= 0)
+    {
+        <div class="mt-3">
+            <span class="badge bg-primary px-3 py-2 fs-6">
+                Pending Requests: @_pendingCount
+            </span>
+        </div>
+    }
+</div>
+
+@code {
+    private int _pendingCount = -1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var pending = await RegistrationService.GetPendingRequestsAsync();
+        _pendingCount = pending.Count;
+    }
+}

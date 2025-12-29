@@ -1,0 +1,298 @@
+﻿@page "/admin/events"
+@attribute [Authorize(Policy = "AdminOnly")]
+@rendermode RenderMode.InteractiveServer
+
+@inject EventService EventService
+@inject VenueService VenueService
+@inject ActivityService ActivityService
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert @(_isError ? "alert-danger" : "alert-success")">
+        @_message
+    </div>
+}
+
+<div class="d-flex flex-column gap-3">
+    <!-- ADD / EDIT EVENT -->
+    <div class="card border-success">
+        <div class="card-body">
+            <h5>@(_editing ? "Edit Event" : "Add Event")</h5>
+
+            <EditForm Model="_model" OnValidSubmit="Save" FormName="EventAdminForm">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-2">
+                    <label class="form-label">Title</label>
+                    <InputText class="form-control" @bind-Value="_model.Title" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Description</label>
+                    <InputTextArea class="form-control" @bind-Value="_model.Description" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Start</label>
+                    <InputDate class="form-control" @bind-Value="_startTemp" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">End</label>
+                    <InputDate class="form-control" @bind-Value="_endTemp" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Capacity</label>
+                    <InputNumber class="form-control" @bind-Value="_model.Capacity" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Venue</label>
+                    <select class="form-select" @bind="_model.VenueId">
+                        <option value="0">Click to Select Venue</option>
+                        @foreach (var v in _venues)
+                        {
+                            <option value="@v.Id">@v.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Activities</label>
+                    <select multiple class="form-select" @bind="_selectedActivityIdsText">
+                        @foreach (var a in _activities)
+                        {
+                            <option value="@a.Id.ToString()">@a.Name</option>
+                        }
+                    </select>
+                   
+                </div>
+
+                <button class="btn btn-admin me-2" type="submit">OK</button>
+                <button type="button" class="btn btn-admin" @onclick="() => Reset(clearMessage: true)">Clear</button>
+            </EditForm>
+        </div>
+    </div>
+
+    <!-- EVENT DETAILS BELOW ADD/EDIT -->
+    <div class="card border-success">
+        <div class="card-body">
+            <h5>Events</h5>
+
+            @if (_items is null)
+            {
+                <p>Loading...</p>
+            }
+            else
+            {
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Venue</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Capacity</th>
+                            <th style="width:160px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var e in _items)
+                        {
+                            <tr>
+                                <td>@e.Title</td>
+                                <td>@e.Venue?.Name</td>
+                                <td>@e.StartDateTime.ToLocalTime()</td>
+                                <td>@e.EndDateTime.ToLocalTime()</td>
+                                <td>@e.Capacity</td>
+                                <td>
+                                    <button class="btn btn-admin btn-sm me-1" @onclick="() => Edit(e.Id)">Edit</button>
+                                    <button class="btn btn-admin btn-sm btn-danger" @onclick="() => ConfirmDelete(e.Id, e.Title)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+            }
+        </div>
+    </div>
+</div>
+
+@if (_showDeleteConfirm)
+{
+    <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>@_deleteTitle</strong>?</p>
+                    <div class="alert alert-warning mb-0">
+                        This will also remove all registrations and activity links.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-admin" @onclick="CancelDelete">Cancel</button>
+                    <button class="btn btn-admin btn-danger" @onclick="DeleteConfirmed">Delete Anyway</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Event>? _items;
+    private List<Venue> _venues = new();
+    private List<Activity> _activities = new();
+
+    private Event _model = new();
+    private bool _editing;
+
+    private string _message = "";
+    private bool _isError;
+
+    private DateTime _startTemp = DateTime.Now.Date.AddDays(7).AddHours(18);
+    private DateTime _endTemp = DateTime.Now.Date.AddDays(7).AddHours(20);
+
+    private List<int> _selectedActivityIds = new();
+    private string[] _selectedActivityIdsText = Array.Empty<string>();
+
+    private bool _showDeleteConfirm;
+    private int _deleteId;
+    private string _deleteTitle = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _venues = await VenueService.GetAllAsync();
+        _activities = await ActivityService.GetAllAsync();
+        await Reload();
+        Reset(clearMessage: true);
+    }
+
+    private async Task Reload()
+    {
+        _items = await EventService.GetAllPublicAsync();
+    }
+
+    private async Task Save()
+    {
+        _message = "";
+        _isError = false;
+
+        if (_model.VenueId <= 0)
+        {
+            _message = "Please select a venue.";
+            _isError = true;
+            return;
+        }
+
+        _model.StartDateTime =
+            DateTime.SpecifyKind(_startTemp, DateTimeKind.Local).ToUniversalTime();
+
+        _model.EndDateTime =
+            DateTime.SpecifyKind(_endTemp, DateTimeKind.Local).ToUniversalTime();
+
+        if (_model.EndDateTime <= _model.StartDateTime)
+        {
+            _message = "End date/time must be after start date/time.";
+            _isError = true;
+            return;
+        }
+
+        _selectedActivityIds = _selectedActivityIdsText
+            .Select(x => int.TryParse(x, out var id) ? id : 0)
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        ServiceResult result;
+
+        if (_editing)
+            result = await EventService.UpdateAsync(_model, _selectedActivityIds);
+        else
+            result = await EventService.AddAsync(_model, _selectedActivityIds);
+
+        _message = result.Message;
+        _isError = !result.Ok;
+
+        if (!result.Ok)
+            return;
+
+        Reset(clearMessage: false);
+        await Reload();
+    }
+
+    private async Task Edit(int id)
+    {
+        _message = "";
+        _isError = false;
+
+        var e = await EventService.GetByIdAsync(id);
+        if (e is null) return;
+
+        _model = new Event
+        {
+            Id = e.Id,
+            Title = e.Title,
+            Description = e.Description,
+            StartDateTime = e.StartDateTime,
+            EndDateTime = e.EndDateTime,
+            Capacity = e.Capacity,
+            VenueId = e.VenueId
+        };
+
+        _startTemp = e.StartDateTime.ToLocalTime();
+        _endTemp = e.EndDateTime.ToLocalTime();
+
+        _selectedActivityIdsText =
+            e.EventActivities.Select(x => x.ActivityId.ToString()).ToArray();
+
+        _editing = true;
+    }
+
+    private void ConfirmDelete(int id, string title)
+    {
+        _deleteId = id;
+        _deleteTitle = title;
+        _showDeleteConfirm = true;
+    }
+
+    private void CancelDelete()
+    {
+        _showDeleteConfirm = false;
+        _deleteId = 0;
+        _deleteTitle = "";
+    }
+
+    private async Task DeleteConfirmed()
+    {
+        await EventService.ForceDeleteAsync(_deleteId);
+
+        _message = $"Deleted '{_deleteTitle}' successfully.";
+        _isError = false;
+
+        CancelDelete();
+        await Reload();
+    }
+
+    private void Reset(bool clearMessage = true)
+    {
+        _model = new Event { Capacity = 1 };
+        _startTemp = DateTime.Now.Date.AddDays(0).AddHours(0);
+        _endTemp = DateTime.Now.Date.AddDays(0).AddHours(0);
+
+        _selectedActivityIdsText = Array.Empty<string>();
+        _editing = false;
+
+        if (clearMessage)
+        {
+            _message = "";
+            _isError = false;
+        }
+    }
+}

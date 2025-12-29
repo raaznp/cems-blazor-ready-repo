@@ -1,0 +1,43 @@
+﻿@page "/events"
+@inject EventService EventService
+
+<h1>Events</h1>
+
+@if (_events is null)
+{
+    <p>Loading...</p>
+}
+else if (_events.Count == 0)
+{
+    <div class="alert alert-warning">No events available.</div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var ev in _events)
+        {
+            <div class="col-12 col-lg-6">
+                <div class="card border-success mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">@ev.Title</h5>
+                        <p class="mb-1"><strong>Starts:</strong> @ev.StartDateTime.ToLocalTime()</p>
+                        <p class="mb-3"><strong>Ends:</strong> @ev.EndDateTime.ToLocalTime()</p>
+                        <p class="mb-1"><strong>Venue:</strong> @ev.Venue?.Name</p>
+                        <p class="card-text">@ev.Description</p>
+
+                        <a class="btn btn-outline-success" href="@($"/events/{ev.Id}")">See Details</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Event>? _events;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _events = await EventService.GetAllPublicAsync();
+    }
+}

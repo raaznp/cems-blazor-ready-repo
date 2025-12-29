@@ -1,0 +1,99 @@
+﻿@page "/admin/approvals"
+@attribute [Authorize(Policy = "AdminOnly")]
+@inject RegistrationService RegistrationService
+
+<h1>All Approvals</h1>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-info">@_message</div>
+}
+
+@if (_pending is null)
+{
+    <p>Loading...</p>
+}
+else if (_pending.Count == 0)
+{
+    <div class="alert alert-secondary">No pending requests.</div>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>When</th>
+                <th>Type</th>
+                <th>Event</th>
+                <th>Participant</th>
+                <th>Status</th>
+                <th style="width: 260px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in _pending)
+            {
+                <tr>
+                    <td>@r.RequestedAtUtc.ToLocalTime()</td>
+                    <td>@r.RequestType</td>
+                    <td>@r.Event?.Title</td>
+                    <td>@r.Participant?.FullName (@r.Participant?.Email)</td>
+                    <td>@r.Status</td>
+                    <td>
+                        <input class="form-control form-control-sm mb-2" placeholder="Admin notes (optional)"
+                               @bind="_notes[r.Id]" />
+                        <button class="btn btn-success btn-sm me-1" @onclick="() => Approve(r.Id)">Approve</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => Decline(r.Id)">Decline</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<EventRegistration>? _pending;
+    private string _message = "";
+    private Dictionary<int, string> _notes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        _pending = await RegistrationService.GetPendingRequestsAsync();
+        _notes = _pending.ToDictionary(x => x.Id, _ => "");
+    }
+
+    private async Task Approve(int id)
+    {
+        try
+        {
+            _message = "";
+            await RegistrationService.ApproveAsync(id, _notes.GetValueOrDefault(id, ""));
+            _message = "Approved successfully.";
+            await Reload();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    private async Task Decline(int id)
+    {
+        try
+        {
+            _message = "";
+            await RegistrationService.DeclineAsync(id, _notes.GetValueOrDefault(id, ""));
+            _message = "Declined successfully.";
+            await Reload();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+}

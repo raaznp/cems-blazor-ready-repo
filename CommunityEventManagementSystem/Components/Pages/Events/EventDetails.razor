@@ -1,0 +1,214 @@
+﻿@page "/events/{EventId:int}"
+@rendermode RenderMode.InteractiveServer
+
+@inject EventService EventService
+@inject ParticipantService ParticipantService
+@inject RegistrationService RegistrationService
+
+@if (_event is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="container">
+        <!-- Event Details -->
+        <div class="card mb-3 border-success">
+            <div class="card-body">
+                <h3>@_event.Title</h3>
+                <p class="mb-2"><strong>Activities:</strong></p>
+                <ul>
+                    @foreach (var a in _event.EventActivities.Select(x => x.Activity?.Name).Where(x => x is not null))
+                    {
+                        <li>@a</li>
+                    }
+                </ul>
+                <p class="mb-1"><strong>Starts:</strong> @_event.StartDateTime.ToLocalTime()</p>
+                <p class="mb-1"><strong>Ends:</strong> @_event.EndDateTime.ToLocalTime()</p>
+                <p class="mb-1"><strong>Venue:</strong> @_event.Venue?.Name (@_event.Venue?.Address)</p>
+                <p class="mb-1"><strong>Capacity:</strong> @_event.Capacity</p>
+                <p>@_event.Description</p>
+                <p class="mb-3"><strong>Attendees:</strong> @_approvedCount</p>
+            </div>
+        </div>
+
+        <!-- Registration Box -->
+        <div class="card mb-3 border-success">
+            <div class="card-body">
+                <h4>Register for this event</h4>
+
+                @if (!string.IsNullOrWhiteSpace(_registerMessage))
+                {
+                    <div class="alert alert-info">@_registerMessage</div>
+                }
+
+                <div class="mb-2">
+                    <label class="form-label">Search existing participant (Name or Email)</label>
+                    <input class="form-control" @bind="_search" />
+                </div>
+                <button class="btn btn-warning btn-sm mb-3" @onclick="SearchParticipants">Search</button>
+
+                @if (_searchResults is not null && _searchResults.Count > 0)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">Select existing participant</label>
+                        <select class="form-select" @bind="_selectedParticipantId">
+                            <option value="0">-- Select --</option>
+                            @foreach (var p in _searchResults)
+                            {
+                                <option value="@p.Id">@p.FullName (@p.Email)</option>
+                            }
+                        </select>
+                        <button class="btn btn-success mt-2" @onclick="RequestRegistrationExisting">Request Registration</button>
+                    </div>
+                }
+
+                <hr />
+
+                <h5>Or create a new participant</h5>
+
+                <EditForm Model="_newParticipant"
+                          OnValidSubmit="RequestRegistrationNew"
+                          FormName="NewParticipantRegistrationForm">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-2">
+                        <label class="form-label">Name</label>
+                        <InputText class="form-control" @bind-Value="_newParticipant.FullName" />
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label">Date of Birth</label>
+                        <InputDate class="form-control" @bind-Value="_dobTemp" />
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label">Phone Number</label>
+                        <InputText class="form-control" @bind-Value="_newParticipant.PhoneNumber" />
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label">Email</label>
+                        <InputText class="form-control" @bind-Value="_newParticipant.Email" />
+                    </div>
+
+                    <button class="btn btn-success" type="submit">Register here</button>
+                </EditForm>
+            </div>
+        </div>
+
+      
+
+    </div>
+}
+
+@code {
+    [Parameter] public int EventId { get; set; }
+
+    private Event? _event;
+    private int _approvedCount;
+
+    private string _search = "";
+    private List<Participant>? _searchResults;
+    private int _selectedParticipantId;
+
+    private Participant _newParticipant = new();
+    private DateTime _dobTemp = DateTime.UtcNow.AddYears(-20);
+
+    private string _registerMessage = "";
+    private string _withdrawMessage = "";
+    private string _withdrawEmail = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEventAsync();
+        _dobTemp = new DateTime(2000, 1, 1);
+    }
+
+    private async Task LoadEventAsync()
+    {
+        _event = await EventService.GetByIdAsync(EventId);
+        _approvedCount = await EventService.GetApprovedAttendeeCountAsync(EventId);
+    }
+
+    private async Task SearchParticipants()
+    {
+        _registerMessage = "";
+        _searchResults = await ParticipantService.SearchAsync(_search);
+        _selectedParticipantId = 0;
+    }
+
+    private async Task RequestRegistrationExisting()
+    {
+        try
+        {
+            _registerMessage = "";
+            if (_selectedParticipantId <= 0)
+            {
+                _registerMessage = "Please select a participant.";
+                return;
+            }
+
+            var participant = await ParticipantService.GetByIdAsync(_selectedParticipantId);
+            if (participant is null)
+            {
+                _registerMessage = "Participant not found.";
+                return;
+            }
+
+            await RegistrationService.CreateRegistrationRequestAsync(EventId, participant);
+            _registerMessage = "Registration request submitted.";
+            await LoadEventAsync();
+        }
+        catch (Exception ex)
+        {
+            _registerMessage = ex.Message;
+        }
+    }
+
+    private async Task RequestRegistrationNew()
+    {
+        try
+        {
+            _registerMessage = "";
+            _newParticipant.DateOfBirth = DateOnly.FromDateTime(_dobTemp.Date);
+
+            var existing = await ParticipantService.FindByEmailAsync(_newParticipant.Email);
+            Participant participant = existing ?? await ParticipantService.AddAsync(_newParticipant);
+
+            await RegistrationService.CreateRegistrationRequestAsync(EventId, participant);
+
+            _registerMessage = "Registration request submitted.";
+            _newParticipant = new Participant();
+            await LoadEventAsync();
+        }
+        catch (Exception ex)
+        {
+            _registerMessage = ex.Message;
+        }
+    }
+
+    private async Task RequestWithdrawal()
+    {
+        try
+        {
+            _withdrawMessage = "";
+
+            var participant = await ParticipantService.FindByEmailAsync((_withdrawEmail ?? "").Trim());
+            if (participant is null)
+            {
+                _withdrawMessage = "Participant not found.";
+                return;
+            }
+
+            await RegistrationService.CreateWithdrawalRequestAsync(EventId, participant.Id);
+            _withdrawMessage = "Withdrawal request submitted.";
+            await LoadEventAsync();
+        }
+        catch (Exception ex)
+        {
+            _withdrawMessage = ex.Message;
+        }
+    }
+}

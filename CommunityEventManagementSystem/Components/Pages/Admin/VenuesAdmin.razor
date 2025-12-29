@@ -1,0 +1,170 @@
+﻿@page "/admin/venues"
+@attribute [Authorize(Policy = "AdminOnly")]
+@inject VenueService VenueService
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-info">@_message</div>
+}
+
+<!-- ADD / EDIT VENUE -->
+<div class="card border-success mb-4">
+    <div class="card-body">
+        <h5>@(_editing ? "Edit Venue" : "Add Venue")</h5>
+
+        <EditForm Model="_model" OnValidSubmit="Save" FormName="VenueAdminForm">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-2">
+                <label class="form-label">Name</label>
+                <InputText class="form-control" @bind-Value="_model.Name" />
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Capacity</label>
+                <InputNumber class="form-control" @bind-Value="_model.Capacity" />
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Address</label>
+                <InputText class="form-control" @bind-Value="_model.Address" />
+            </div>
+
+
+
+            <button class="btn btn-success me-2" type="submit">OK</button>
+            <button type="button" class="btn btn-secondary" @onclick="Reset">Clear</button>
+        </EditForm>
+    </div>
+</div>
+
+<!-- VENUE LIST -->
+<div class="card border-success">
+    <div class="card-body">
+        <h5>Venues</h5>
+
+        @if (_items is null)
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Capacity</th>
+                        <th>Address</th>
+                        
+                        <th style="width:160px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in _items)
+                    {
+                        <tr>
+                            <td>@v.Name</td>
+                            <td>@v.Capacity</td>
+                            <td>@v.Address</td>
+                            
+                            <td>
+                                <button class="btn btn-outline-success btn-sm me-1"
+                                        @onclick="() => Edit(v.Id)">
+                                    Edit
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm"
+                                        @onclick="() => Delete(v.Id)">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="text-muted small">
+
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Venue>? _items;
+    private Venue _model = new();
+    private bool _editing;
+    private string _message = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        _items = await VenueService.GetAllAsync();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            _message = "";
+
+            if (_editing)
+                await VenueService.UpdateAsync(_model);
+            else
+                await VenueService.AddAsync(_model);
+
+            _message = "New Venue Added!";
+            Reset();
+            await Reload();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    private async Task Edit(int id)
+    {
+        _message = "";
+        var v = await VenueService.GetByIdAsync(id);
+        if (v is null) return;
+
+        _model = new Venue
+        {
+            Id = v.Id,
+            Name = v.Name,
+            Address = v.Address,
+            Capacity = v.Capacity
+        };
+
+        _editing = true;
+    }
+
+    private async Task Delete(int id)
+    {
+        try
+        {
+            _message = "";
+            var ok = await VenueService.DeleteAsync(id);
+            _message = ok
+                ? "Venue Deleted successfully."
+                : "Venue Cannot be deleted!";
+
+            await Reload();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    private void Reset()
+    {
+        _model = new Venue();
+        _editing = false;
+    }
+}
